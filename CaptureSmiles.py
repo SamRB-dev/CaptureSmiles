@@ -9,26 +9,39 @@ camera = cv2.VideoCapture(0)
 def main():
     try:
         while True:
-            # Capture frame
             status, frame = camera.read()
-            
-            # Greyscale the frame
             greyscale_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            
-            # Detect faces
+
             face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+            smile_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_smile.xml')
+
             faces = face_cascade.detectMultiScale(greyscale_frame, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-            
-            # Draw rectangles around detected faces
-            for (x, y, w, h) in faces:
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                
-            # Display the frame
+
+            for (fx, fy, fw, fh) in faces:
+                # Draw face rectangle
+                cv2.rectangle(frame, (fx, fy), (fx + fw, fy + fh), (255, 0, 0), 2)
+
+                # Extract face region of interest (ROI)
+                roi_gray = greyscale_frame[fy:fy+fh, fx:fx+fw]
+                roi_color = frame[fy:fy+fh, fx:fx+fw]
+
+                # Detect smile in face ROI
+                smiles = smile_cascade.detectMultiScale(
+                    roi_gray,
+                    scaleFactor=1.8,
+                    minNeighbors=5,   # try tuning this to avoid false positives
+                    minSize=(25, 25)
+                )
+
+                for (sx, sy, sw, sh) in smiles:
+                    cv2.rectangle(roi_color, (sx, sy), (sx + sw, sy + sh), (0, 255, 0), 2)
+                    # Optional: print("Smile detected!")
+
             cv2.imshow('Smile Detector', frame)
-                
-            # Quit Procedure
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
     except Exception as e:
         console.print(f":warning: Error: {e}")
     finally:
